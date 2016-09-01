@@ -1,20 +1,32 @@
 #!/usr/bin/python3
 
+"""
+qbibformat: put a formatted BibTeX entry on the clipboard
+
+Requirements: beautiful soup, bibtool, pandoc, xclip.
+"""
+
 import sys
-from subprocess import PIPE, DEVNULL, Popen
+import os.path
+from subprocess import PIPE, Popen
 from bs4 import BeautifulSoup
+from tempfile import TemporaryDirectory
 
-def main():
+def extract_and_format(bibfile, key, tempdir):
 
-  # Extract the desired entry using bibtool.
+  tempfile = os.path.join(tempdir, "temp.bib")
+
+  # Extract the desired entry using bibtool and write it to a
+  # temporary .bib file. Unwanted fields can also be removed
+  # at this stage.
   bibtool = Popen(
     ["bibtool", "-R",
-     "--", "select {$key \"%s\"}" % sys.argv[1],
+     "--", "select {$key \"%s\"}" % key,
      "--", "delete.field { abstract }",
      "--", "delete.field { mynote }",
      "--", "delete.field { url }",
-     "~/files/mine/text/bibliography/geoscience.bib",
-     "-o", "temp.bib",
+     bibfile,
+     "-o", tempfile,
      "-q" # suppress warnings
    ])
   bibtool.wait()
@@ -26,10 +38,20 @@ def main():
   # Run pandoc
   pandoc = Popen(["pandoc",
                   "--to", "html",
-                  "--csl", "apa.csl",
-                  "--bibliography", "temp.bib"],
+                  "--csl", "harvard1.csl",
+                  "--bibliography", tempfile],
                  stdout=PIPE, stdin=PIPE, stderr=PIPE)
   pandoc_output = pandoc.communicate(source.encode())[0]
+
+  return pandoc_output
+
+def main():
+
+  with TemporaryDirectory() as tempdir:
+    pandoc_output = extract_and_format(
+      "~/files/mine/text/bibliography/geoscience.bib",
+      sys.argv[1],
+      tempdir)
 
   # Pandoc adds some divs around the citation. We use BeautifulSoup
   # to extract the first <p> element, which contains the bare 
