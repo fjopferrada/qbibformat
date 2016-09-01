@@ -12,6 +12,13 @@ from subprocess import PIPE, Popen
 from bs4 import BeautifulSoup
 from tempfile import TemporaryDirectory
 
+### Main configuration options ######################################
+
+BIBFILE = "demo.bib"
+STYLE_FILE = "harvard1.csl"
+
+#####################################################################
+
 def extract_and_format(bibfile, key, tempdir):
 
   tempfile = os.path.join(tempdir, "temp.bib")
@@ -38,7 +45,7 @@ def extract_and_format(bibfile, key, tempdir):
   # Run pandoc
   pandoc = Popen(["pandoc",
                   "--to", "html",
-                  "--csl", "harvard1.csl",
+                  "--csl", STYLE_FILE,
                   "--bibliography", tempfile],
                  stdout=PIPE, stdin=PIPE, stderr=PIPE)
   pandoc_output = pandoc.communicate(source.encode())[0]
@@ -48,15 +55,12 @@ def extract_and_format(bibfile, key, tempdir):
 def main():
 
   with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(
-      "~/files/mine/text/bibliography/geoscience.bib",
-      sys.argv[1],
-      tempdir)
+    pandoc_output = extract_and_format(BIBFILE, sys.argv[1], tempdir)
 
   # Pandoc adds some divs around the citation. We use BeautifulSoup
   # to extract the first <p> element, which contains the bare 
   # citation itself.
-  soup = BeautifulSoup(pandoc_output)
+  soup = BeautifulSoup(pandoc_output.decode("utf-8"))
   par = soup.find("p")
 
   # We use xclip to place the HTML fragment on the X clipboard. Note
@@ -69,6 +73,7 @@ def main():
                  "-target", "text/html"],
                 stdin=PIPE, stdout=PIPE)
   xclip.communicate(par.encode("utf-8"))
+  #xclip.communicate(pandoc_output)
 
 if __name__=="__main__":
   main()
