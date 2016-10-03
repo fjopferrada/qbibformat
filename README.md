@@ -39,15 +39,21 @@ STYLE_FILE variables defined near the start of the script.
 Usage
 -----
 
-`qbibformat somebibtexkey`
+    qbibformat <somebibtexkey> ...
 
-Where `somebibtexkey` is, of course, the key of the item you want
+Where the `<somebibtexkey>` arguments are the keys of the items you want
 to extract from your .bib file.
 
 Note that the output is sent to the clipboard as HTML, and can only be
 pasted into applications that accept HTML (e.g. LibreOffice Writer,
 Google Docs). If plain text output is required, the "--target" argument
 in qbibformat's call to xclip can easily be changed.
+
+Because of the way the X clipboard works, xclip -- and therefore
+qbibformat -- must keep running in order to supply the clipboard
+contents when they are pasted. Once the clipboard has been pasted,
+qbibformat can be terminated with ctrl-C at the command line, or by
+putting something else on the clipboard.
 
 Demo
 ----

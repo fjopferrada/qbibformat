@@ -33,6 +33,7 @@ import os.path
 from subprocess import PIPE, Popen
 from bs4 import BeautifulSoup
 from tempfile import TemporaryDirectory
+from functools import reduce
 
 ### Main configuration options ######################################
 
@@ -41,25 +42,31 @@ STYLE_FILE = "harvard1.csl"
 
 #####################################################################
 
-def extract_and_format(bibfile, key, tempdir):
+def extract_and_format(bibfile, keys, tempdir):
 
   tempfile = os.path.join(tempdir, "temp.bib")
 
-  # Extract the desired entry using bibtool and write it to a
+  # Build the key selection arguments for bibtool.
+  sel_args = reduce(
+    lambda args, key: args + ["--", "select {$key \"%s\"}" % key],
+    keys, [])
+  sel_args_flat = []
+
+  # Extract the desired entries using bibtool and write them to a
   # temporary .bib file. Unwanted fields can also be removed
   # at this stage.
-  bibtool = Popen(
-    ["bibtool", "-R",
-     "--", "select {$key \"%s\"}" % key,
-     "--", "delete.field { abstract }",
-     "--", "delete.field { mynote }",
-     "--", "delete.field { url }",
-     bibfile,
-     "-o", tempfile,
-     "-q" # suppress warnings
-   ])
-  bibtool.wait()
-
+  for key in keys:
+    bibtool = Popen(
+      ["bibtool", "-R"] + sel_args + [
+       "--", "delete.field { abstract }",
+       "--", "delete.field { mynote }",
+       "--", "delete.field { url }",
+       bibfile,
+       "-o", tempfile,
+       "-q" # suppress warnings
+     ])
+    bibtool.wait()
+  
   # Minimal Markdown input for pandoc.
   # Since version 0.4, pandoc-citeproc supports a wildcard nocite.
   source = "---\nnocite: '@*'\n...\n"
@@ -77,24 +84,32 @@ def extract_and_format(bibfile, key, tempdir):
 def main():
 
   with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(BIBFILE, sys.argv[1], tempdir)
+    pandoc_output = extract_and_format(BIBFILE, sys.argv[1:], tempdir)
 
-  # Pandoc adds some divs around the citation. We use BeautifulSoup
-  # to extract the first <p> element, which contains the bare 
-  # citation itself.
+  # Pandoc adds some divs around the citations. We use BeautifulSoup to
+  # extract the <p> elements, which contain the bare citations.
   soup = BeautifulSoup(pandoc_output.decode("utf-8"))
-  par = soup.find("p")
+  pars = list(map(str, soup.findAll("p")))
+
+  if len(pars) == 0:
+    print("No valid items to copy to the clipboard.")
+    return
+
+  parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
 
   # We use xclip to place the HTML fragment on the X clipboard. Note
   # that there is no X clipboard buffer! xclip must remain running to
   # handle the interclient communication when the contents are pasted.
-  # The "-loops 1" argument tells it to exit after the first transfer.
+
+  # The "-loops" argument tells how many transfers to carry out before
+  # exiting. "-loops 0" will loop infinitely.
   xclip = Popen(["xclip",
                  "-selection", "clipboard",
-                 "-loops", "1",
+                 "-loops", "0",
+                 "-verbose",
                  "-target", "text/html"],
-                stdin=PIPE, stdout=PIPE)
-  xclip.communicate(par.encode("utf-8"))
+                stdin=PIPE)#, stdout=PIPE)
+  xclip.communicate(parstring.encode("utf-8"))
 
 if __name__=="__main__":
   main()
