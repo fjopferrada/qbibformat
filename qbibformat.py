@@ -30,6 +30,7 @@ Requirements: beautiful soup, bibtool, pandoc, xclip.
 
 import sys
 import os.path
+import argparse
 from subprocess import PIPE, Popen
 from bs4 import BeautifulSoup
 from tempfile import TemporaryDirectory
@@ -42,7 +43,7 @@ STYLE_FILE = "harvard1.csl"
 
 #####################################################################
 
-def extract_and_format(bibfile, keys, tempdir):
+def extract_and_format(bibfile, keys, tempdir, output_type):
 
   tempfile = os.path.join(tempdir, "temp.bib")
 
@@ -73,29 +74,49 @@ def extract_and_format(bibfile, keys, tempdir):
 
   # Run pandoc
   pandoc = Popen(["pandoc",
-                  "--to", "html",
+                  "--wrap", "none",
+                  "--to", {"html":"html","text":"plain"}[output_type],
                   "--csl", STYLE_FILE,
                   "--bibliography", tempfile],
                  stdout=PIPE, stdin=PIPE, stderr=PIPE)
   pandoc_output = pandoc.communicate(source.encode())[0]
-
   return pandoc_output
 
 def main():
 
+  parser = argparse.ArgumentParser(description="Put a formatted bibtex entry on the clipboard.")
+
+  parser.add_argument("bibtex_key", metavar="bibtex-key", type=str, nargs="+",
+                      help="keys of bibtex entries to format")
+  parser.add_argument("-t", "--output-type", dest="output_type",
+                      type=str,
+                      choices=["text", "html"], default="html")
+  args = parser.parse_args()
+
   with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(BIBFILE, sys.argv[1:], tempdir)
+    pandoc_output = extract_and_format(BIBFILE, args.bibtex_key,
+                                       tempdir, args.output_type)
 
-  # Pandoc adds some divs around the citations. We use BeautifulSoup to
-  # extract the <p> elements, which contain the bare citations.
-  soup = BeautifulSoup(pandoc_output.decode("utf-8"))
-  pars = list(map(str, soup.findAll("p")))
+  if args.output_type == "text":
+    if pandoc_output == "":
+      print("No valid items to copy to the clipboard.")
+      return
+    parstring = pandoc_output
+    print(parstring)
+  else:
+    # Pandoc adds some divs around the citations. We use BeautifulSoup to
+    # extract the <p> elements, which contain the bare citations.
+    soup = BeautifulSoup(pandoc_output.decode("utf-8"))
 
-  if len(pars) == 0:
-    print("No valid items to copy to the clipboard.")
-    return
+    pars = list(map(str, soup.findAll("p")))
 
-  parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
+    if len(pars) == 0:
+      print("No valid items to copy to the clipboard.")
+      return
+
+    parstring = reduce(lambda a, b: a + "\n" + b, pars, "").encode("utf-8")
+
+  target_map = {"text": "text/plain;charset=utf-8", "html": "text/html"}
 
   # We use xclip to place the HTML fragment on the X clipboard. Note
   # that there is no X clipboard buffer! xclip must remain running to
@@ -107,9 +128,9 @@ def main():
                  "-selection", "clipboard",
                  "-loops", "0",
                  "-verbose",
-                 "-target", "text/html"],
+                 "-target", target_map[args.output_type]],
                 stdin=PIPE)#, stdout=PIPE)
-  xclip.communicate(parstring.encode("utf-8"))
+  xclip.communicate(parstring)
 
 if __name__=="__main__":
   main()
