@@ -84,13 +84,23 @@ def extract_and_format(bibfile, keys, tempdir, output_type):
 
 def main():
 
-  parser = argparse.ArgumentParser(description="Put a formatted bibtex entry on the clipboard.")
+  parser = argparse.ArgumentParser(description = 
+      "Write formatted BibTeX entries to files, clipboard, or terminal.")
 
-  parser.add_argument("bibtex_key", metavar="bibtex-key", type=str, nargs="+",
+  parser.add_argument("bibtex_key", metavar="<bibtex-key>",
+                      type=str, nargs="+",
                       help="keys of bibtex entries to format")
   parser.add_argument("-t", "--output-type", dest="output_type",
                       type=str,
                       choices=["text", "html"], default="html")
+  parser.add_argument("-o", "--output-file", metavar = "<filename>",
+                      dest="output_file",
+                      help = "write entries to specified file",
+                      type=str),
+  parser.add_argument("-c", "--clipboard", action="store_true",
+                      help = "copy entries to clipboard"),
+  parser.add_argument("-q", "--quiet", action="store_true",
+                      help = "don't write entries to standard output"),
   args = parser.parse_args()
 
   with TemporaryDirectory() as tempdir:
@@ -101,8 +111,8 @@ def main():
     if pandoc_output == "":
       print("No valid items to copy to the clipboard.")
       return
-    parstring = pandoc_output
-    print(parstring)
+    parstring = pandoc_output.decode()
+
   else:
     # Pandoc adds some divs around the citations. We use BeautifulSoup to
     # extract the <p> elements, which contain the bare citations.
@@ -114,23 +124,31 @@ def main():
       print("No valid items to copy to the clipboard.")
       return
 
-    parstring = reduce(lambda a, b: a + "\n" + b, pars, "").encode("utf-8")
+    parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
 
   target_map = {"text": "text/plain;charset=utf-8", "html": "text/html"}
 
-  # We use xclip to place the HTML fragment on the X clipboard. Note
-  # that there is no X clipboard buffer! xclip must remain running to
-  # handle the interclient communication when the contents are pasted.
+  if not args.quiet:
+    print(parstring)
 
-  # The "-loops" argument tells how many transfers to carry out before
-  # exiting. "-loops 0" will loop infinitely.
-  xclip = Popen(["xclip",
-                 "-selection", "clipboard",
-                 "-loops", "0",
-                 "-verbose",
-                 "-target", target_map[args.output_type]],
-                stdin=PIPE)#, stdout=PIPE)
-  xclip.communicate(parstring)
+  if args.output_file:
+    with open(args.output_file, "w") as fh:
+      fh.write(parstring)
+
+  if args.clipboard:
+    # We use xclip to place the HTML fragment on the X clipboard. Note
+    # that there is no X clipboard buffer! xclip must remain running to
+    # handle the interclient communication when the contents are pasted.
+
+    # The "-loops" argument tells how many transfers to carry out before
+    # exiting. "-loops 0" will loop infinitely.
+    xclip = Popen(["xclip",
+                   "-selection", "clipboard",
+                   "-loops", "0",
+                   "-verbose",
+                   "-target", target_map[args.output_type]],
+                  stdin=PIPE)#, stdout=PIPE)
+    xclip.communicate(parstring.encode("utf-8"))
 
 if __name__=="__main__":
   main()

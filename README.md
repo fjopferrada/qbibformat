@@ -1,8 +1,8 @@
 qbibformat
 ==========
 
-A utility to turn individual BibTeX entries into formatted rich text
-and place them on the X clipboard.
+A utility to turn individual BibTeX entries into formatted plain text or
+HTML and write them to the standard output, a file, or the X clipboard.
 
 Copyright Pontus Lurcock, 2016. Released under the MIT licence.
 
@@ -17,8 +17,9 @@ support it, or because my co-authors aren't comfortable with it.
 
 In such sitations, I frequently want to extract a single entry from my
 BibTeX master file, format it according to a specified bibliographic
-style, and copy it to the clipboard. This is what qbibformat does.
-The style is defined by a CSL (Citation Style Language) file.
+style, and write it to a file or copy it to the clipboard. This is what
+qbibformat does. The style is defined by a CSL (Citation Style Language)
+file.
 
 Dependencies
 ------------
@@ -31,7 +32,7 @@ under the X window system.
 Configuration
 -------------
 
-All configuration is done by editing the script directly. The most
+Basic configuration is done by editing the script directly. The most
 important parameters are the location of the bibliography file and
 the location of the CSL file; these are stored in the BIBFILE and
 STYLE_FILE variables defined near the start of the script.
@@ -39,15 +40,39 @@ STYLE_FILE variables defined near the start of the script.
 Usage
 -----
 
-    qbibformat <somebibtexkey> ...
+    qbibformat [-h] [-t {text,html}] [-o <filename>] [-c] [-q]
+	           <bibtex-key> [<bibtex-key> ...]
 
-Where the `<somebibtexkey>` arguments are the keys of the items you want
+Where the `<bibtex-key>` arguments are the keys of the items you want
 to extract from your .bib file.
 
-Note that the output is sent to the clipboard as HTML, and can only be
-pasted into applications that accept HTML (e.g. LibreOffice Writer,
-Google Docs). If plain text output is required, the "--target" argument
-in qbibformat's call to xclip can easily be changed.
+By default, the formatted entries are written to the standard output
+only.
+
+Options
+-------
+
+`-h`, `--help` Display help and exit.
+
+`-t <type>`, `--output-type <type>` Set output type for formatted
+entries. Allowed values are `text` and `html`.
+
+`-o <filename>`, `--output-file <filename>` Write formatted entries to
+the specified file.
+
+`-q`, `--quiet` Do not write formatted entries to standard output.
+
+`-c`, `--clipboard` Copy formatted entries to the X clipboard.
+
+Examples
+--------
+
+Notes on the X clipboard
+------------------------
+
+Note that if the output is sent to the clipboard as HTML, it can only
+be pasted into applications that accept HTML (e.g. LibreOffice Writer,
+Google Docs).
 
 Because of the way the X clipboard works, xclip -- and therefore
 qbibformat -- must keep running in order to supply the clipboard
