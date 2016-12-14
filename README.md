@@ -29,14 +29,6 @@ the external programs bibtool, pandoc, and xclip. Because qbibformat
 uses xclip to put the reference on the clipboard, it will only work
 under the X window system.
 
-Configuration
--------------
-
-Basic configuration is done by editing the script directly. The most
-important parameters are the location of the bibliography file and
-the location of the CSL file; these are stored in the BIBFILE and
-STYLE_FILE variables defined near the start of the script.
-
 Usage
 -----
 
@@ -54,6 +46,12 @@ Options
 
 `-h`, `--help` Display help and exit.
 
+`-b <filename>, --bib-file <filename>` Bibliography file from which
+to read entries.
+
+`-s <filename>, --style-file <filename>` CSL file to use when formatting
+entries.
+
 `-t <type>`, `--output-type <type>` Set output type for formatted
 entries. Allowed values are `text` and `html`.
 
@@ -64,8 +62,36 @@ the specified file.
 
 `-c`, `--clipboard` Copy formatted entries to the X clipboard.
 
+Configuration file
+------------------
+
+The `--bib-file` and `--style-file` options can also be specified in a
+configuration file called `.qbibformat` in the user's home directory.
+An example configuration file follows:
+
+    [DEFAULT]
+    StyleFile = harvard1.csl
+    BibFile = demo.bib
+
 Examples
 --------
+
+    qbibformat --output-type text smith2000weasels
+
+Take the entry `smith2000weasels` from the configured bibliography file,
+format it as plain text according to the configured style file, and
+write it to the standard output.
+
+    qbibformat --clipboard --quiet smith2000weasels blazek2001badgers
+
+Take the entries `smith2000weasels`and `blazek2001badgers` from the
+configured bibliography file, format them as HTML according to the
+configured style file, and put them on the clipboard.
+
+    qbibformat --bib-file demo.bib --style-file harvard1.csl blazek2001badgers
+
+Take the entry `blazek2001badgers` from `demo.bib`, format it as HTML
+according to `harvard1.csl`, and write it to the standard output.
 
 Notes on the X clipboard
 ------------------------

@@ -23,7 +23,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-qbibformat: put a formatted BibTeX entry on the clipboard
+qbibformat: format and output entries from BibTeX files
 
 Requirements: beautiful soup, bibtool, pandoc, xclip.
 """
@@ -31,19 +31,15 @@ Requirements: beautiful soup, bibtool, pandoc, xclip.
 import sys
 import os.path
 import argparse
+import configparser
 from subprocess import PIPE, Popen
 from bs4 import BeautifulSoup
 from tempfile import TemporaryDirectory
 from functools import reduce
 
-### Main configuration options ######################################
+CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".qbibformat")
 
-BIBFILE = "demo.bib"
-STYLE_FILE = "harvard1.csl"
-
-#####################################################################
-
-def extract_and_format(bibfile, keys, tempdir, output_type):
+def extract_and_format(bibfile, style_file, keys, tempdir, output_type):
 
   tempfile = os.path.join(tempdir, "temp.bib")
 
@@ -76,7 +72,7 @@ def extract_and_format(bibfile, keys, tempdir, output_type):
   pandoc = Popen(["pandoc",
                   "--wrap", "none",
                   "--to", {"html":"html","text":"plain"}[output_type],
-                  "--csl", STYLE_FILE,
+                  "--csl", style_file,
                   "--bibliography", tempfile],
                  stdout=PIPE, stdin=PIPE, stderr=PIPE)
   pandoc_output = pandoc.communicate(source.encode())[0]
@@ -84,14 +80,34 @@ def extract_and_format(bibfile, keys, tempdir, output_type):
 
 def main():
 
+  bibfile = "demo.bib"
+  style_file = "harvard1.csl"
+  config = configparser.ConfigParser()
+  config.read(CONFIG_PATH)
+  config_default = config["DEFAULT"]
+  if config_default.get("BibFile"):
+    bibfile = config_default.get("BibFile")
+  if config_default.get("StyleFile"):
+    style_file = config_default.get("StyleFile")
+
   parser = argparse.ArgumentParser(description = 
-      "Write formatted BibTeX entries to files, clipboard, or terminal.")
+      "Write formatted BibTeX entries to files, clipboard, or terminal.",
+      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 
   parser.add_argument("bibtex_key", metavar="<bibtex-key>",
                       type=str, nargs="+",
                       help="keys of bibtex entries to format")
+  parser.add_argument("-b", "--bib-file", metavar = "<filename>",
+                      dest="bib_file", default = bibfile,
+                      help = "read entries from specified .bib file",
+                      type=str),
+  parser.add_argument("-s", "--style-file", metavar = "<filename>",
+                      dest="style_file", default = style_file,
+                      help = "format according to specified CSL file",
+                      type=str),
   parser.add_argument("-t", "--output-type", dest="output_type",
                       type=str,
+                      help = "type of output to produce",
                       choices=["text", "html"], default="html")
   parser.add_argument("-o", "--output-file", metavar = "<filename>",
                       dest="output_file",
@@ -101,10 +117,11 @@ def main():
                       help = "copy entries to clipboard"),
   parser.add_argument("-q", "--quiet", action="store_true",
                       help = "don't write entries to standard output"),
+
   args = parser.parse_args()
 
   with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(BIBFILE, args.bibtex_key,
+    pandoc_output = extract_and_format(bibfile, style_file, args.bibtex_key,
                                        tempdir, args.output_type)
 
   if args.output_type == "text":
@@ -113,7 +130,7 @@ def main():
       return
     parstring = pandoc_output.decode()
 
-  else:
+  else: # output type is not text, so it must be HTML
     # Pandoc adds some divs around the citations. We use BeautifulSoup to
     # extract the <p> elements, which contain the bare citations.
     soup = BeautifulSoup(pandoc_output.decode("utf-8"))
