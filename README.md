@@ -105,10 +105,3 @@ qbibformat -- must keep running in order to supply the clipboard
 contents when they are pasted. Once the clipboard has been pasted,
 qbibformat can be terminated with ctrl-C at the command line, or by
 putting something else on the clipboard.
-
-Demo
-----
-
-qbibformat is supplied with a sample bib file `demo.bib`, a CSL file
-`harvard1.csl`, and a demo script `demo.sh`. Run the script to
-demonstrate qbibformat's functionality.
