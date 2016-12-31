@@ -71,11 +71,15 @@ def extract_and_format(bibfile, style_file, keys, tempdir, output_type):
   # Run pandoc
   pandoc = Popen(["pandoc",
                   "--wrap", "none",
-                  "--to", {"html":"html","text":"plain"}[output_type],
+                  "--to", {"html": "html",
+                           "markdown": "markdown-citations",
+                           "markdown-pure": "markdown_strict-raw_html-citations-native_divs-native_spans-markdown_in_html_blocks",
+                           "text": "plain"}[output_type],
                   "--csl", style_file,
                   "--bibliography", tempfile],
                  stdout=PIPE, stdin=PIPE, stderr=PIPE)
   pandoc_output = pandoc.communicate(source.encode())[0]
+
   return pandoc_output
 
 def main():
@@ -108,7 +112,8 @@ def main():
   parser.add_argument("-t", "--output-type", dest="output_type",
                       type=str,
                       help = "type of output to produce",
-                      choices=["text", "html"], default="html")
+                      choices=["text", "html", "markdown", "markdown-pure"],
+                      default="html")
   parser.add_argument("-o", "--output-file", metavar = "<filename>",
                       dest="output_file",
                       help = "write entries to specified file",
@@ -121,10 +126,11 @@ def main():
   args = parser.parse_args()
 
   with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(bibfile, style_file, args.bibtex_key,
+    pandoc_output = extract_and_format(bibfile, args.style_file,
+                                       args.bibtex_key,
                                        tempdir, args.output_type)
 
-  if args.output_type == "text":
+  if args.output_type in ("text", "markdown", "markdown-pure"):
     if pandoc_output == "":
       print("No valid items to copy to the clipboard.")
       return
@@ -138,12 +144,15 @@ def main():
     pars = list(map(str, soup.findAll("p")))
 
     if len(pars) == 0:
-      print("No valid items to copy to the clipboard.")
+      print("No matching items found in bibtex file.")
       return
 
     parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
 
-  target_map = {"text": "text/plain;charset=utf-8", "html": "text/html"}
+  target_map = {"text": "text/plain;charset=utf-8",
+                "markdown": "text/plain;charset=utf-8",
+                "markdown-pure": "text/plain;charset=utf-8",
+                "html": "text/html"}
 
   if not args.quiet:
     print(parstring)

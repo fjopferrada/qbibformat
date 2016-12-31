@@ -1,8 +1,9 @@
 qbibformat
 ==========
 
-A utility to turn individual BibTeX entries into formatted plain text or
-HTML and write them to the standard output, a file, or the X clipboard.
+A utility to turn individual BibTeX entries into formatted plain text,
+markdown, or HTML. Formatting is controlled by a CSL file. Output can be
+written to the standard output, a file, or the X clipboard.
 
 Copyright Pontus Lurcock, 2016. Released under the MIT licence.
 
@@ -12,14 +13,14 @@ Introduction
 I have a single, large .bib file containing all my bibliographic
 references. Sometimes I work on documents which require a list of
 references, but aren't amenable to the use of reference management
-software -- either because the platform (e.g. Google Docs) doesn't
+software – either because the platform (e.g. Google Docs) doesn't
 support it, or because my co-authors aren't comfortable with it.
 
-In such sitations, I frequently want to extract a single entry from my
-BibTeX master file, format it according to a specified bibliographic
-style, and write it to a file or copy it to the clipboard. This is what
-qbibformat does. The style is defined by a CSL (Citation Style Language)
-file.
+In such sitations, I frequently want to extract a one or a few entries
+from my BibTeX master file, format them according to a specified
+bibliographic style, and write the output to a file or copy it to the
+clipboard. This is what qbibformat does. The bibliographic style is
+defined by a CSL (Citation Style Language) file.
 
 Dependencies
 ------------
@@ -32,8 +33,10 @@ under the X window system.
 Usage
 -----
 
-    qbibformat [-h] [-t {text,html}] [-o <filename>] [-c] [-q]
-	           <bibtex-key> [<bibtex-key> ...]
+    qbibformat [-h] [-t {text,html,markdown,markdown-pure}]
+	           [-b <filename>] [-s <filename>]
+	           [-o <filename>] [-c] [-q]
+			   <bibtex-key> [<bibtex-key> ...]
 
 Where the `<bibtex-key>` arguments are the keys of the items you want
 to extract from your .bib file.
@@ -53,7 +56,10 @@ to read entries.
 entries.
 
 `-t <type>`, `--output-type <type>` Set output type for formatted
-entries. Allowed values are `text` and `html`.
+entries. Allowed values are `text`, `html`, `markdown`, and `markdown-pure`.
+`markdown-pure` produces markdown without any intermixed HTML fragments,
+whereas `markdown` will wrap output in HTML `div`s, and use HTML formatting
+for things that markdown can't do (e.g. small capitals).
 
 `-o <filename>`, `--output-file <filename>` Write formatted entries to
 the specified file.
@@ -72,6 +78,9 @@ An example configuration file follows:
     [DEFAULT]
     StyleFile = harvard1.csl
     BibFile = demo.bib
+
+If a `--bib-file` and `--style-file` command-line argument is supplied,
+it will override the corresponding value in the configuration file.
 
 Examples
 --------
