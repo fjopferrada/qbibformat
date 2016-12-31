@@ -90,9 +90,9 @@ def main():
   config.read(CONFIG_PATH)
   config_default = config["DEFAULT"]
   if config_default.get("BibFile"):
-    bibfile = config_default.get("BibFile")
+    bibfile = os.path.expanduser(config_default.get("BibFile"))
   if config_default.get("StyleFile"):
-    style_file = config_default.get("StyleFile")
+    style_file = os.path.expanduser(config_default.get("StyleFile"))
 
   parser = argparse.ArgumentParser(description = 
       "Write formatted BibTeX entries to files, clipboard, or terminal.",
@@ -125,18 +125,22 @@ def main():
 
   args = parser.parse_args()
 
+  if not os.path.isfile(args.bib_file):
+      print("Bibliography file %s does not exist. Exiting." %
+            args.bib_file, file = sys.stderr)
+      sys.exit(1)
+      
+  if not os.path.isfile(args.style_file):
+      print("Style file %s does not exist. Exiting." %
+            args.style_file, file = sys.stderr)
+      sys.exit(1)
+
   with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(bibfile, args.style_file,
+    pandoc_output = extract_and_format(args.bib_file, args.style_file,
                                        args.bibtex_key,
                                        tempdir, args.output_type)
 
-  if args.output_type in ("text", "markdown", "markdown-pure"):
-    if pandoc_output == "":
-      print("No valid items to copy to the clipboard.")
-      return
-    parstring = pandoc_output.decode()
-
-  else: # output type is not text, so it must be HTML
+  if args.output_type == "html":
     # Pandoc adds some divs around the citations. We use BeautifulSoup to
     # extract the <p> elements, which contain the bare citations.
     soup = BeautifulSoup(pandoc_output.decode("utf-8"))
@@ -148,6 +152,12 @@ def main():
       return
 
     parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
+
+  else: # output type is not HTML, so it must be plain text or markdown
+    if pandoc_output == "":
+      print("No valid items to copy to the clipboard.")
+      return
+    parstring = pandoc_output.decode()
 
   target_map = {"text": "text/plain;charset=utf-8",
                 "markdown": "text/plain;charset=utf-8",
@@ -173,7 +183,7 @@ def main():
                    "-loops", "0",
                    "-verbose",
                    "-target", target_map[args.output_type]],
-                  stdin=PIPE)#, stdout=PIPE)
+                  stdin=PIPE)
     xclip.communicate(parstring.encode("utf-8"))
 
 if __name__=="__main__":
