@@ -41,150 +41,151 @@ CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".qbibformat")
 
 def extract_and_format(bibfile, style_file, keys, tempdir, output_type):
 
-  tempfile = os.path.join(tempdir, "temp.bib")
+    tempfile = os.path.join(tempdir, "temp.bib")
 
-  # Build the key selection arguments for bibtool.
-  sel_args = reduce(
-    lambda args, key: args + ["--", "select {$key \"%s\"}" % key],
-    keys, [])
-  sel_args_flat = []
+    # Build the key selection arguments for bibtool.
+    sel_args = reduce(
+      lambda args, key: args + ["--", "select {$key \"%s\"}" % key],
+      keys, [])
+    sel_args_flat = []
 
-  # Extract the desired entries using bibtool and write them to a
-  # temporary .bib file. Unwanted fields can also be removed
-  # at this stage.
-  for key in keys:
-    bibtool = Popen(
-      ["bibtool", "-R"] + sel_args + [
-       "--", "delete.field { abstract }",
-       "--", "delete.field { mynote }",
-       "--", "delete.field { url }",
-       bibfile,
-       "-o", tempfile,
-       "-q" # suppress warnings
-     ])
-    bibtool.wait()
-  
-  # Minimal Markdown input for pandoc.
-  # Since version 0.4, pandoc-citeproc supports a wildcard nocite.
-  source = "---\nnocite: '@*'\n...\n"
+    # Extract the desired entries using bibtool and write them to a
+    # temporary .bib file. Unwanted fields can also be removed
+    # at this stage.
+    for key in keys:
+        bibtool = Popen(
+          ["bibtool", "-R"] + sel_args + [
+           "--", "delete.field { abstract }",
+           "--", "delete.field { mynote }",
+           "--", "delete.field { url }",
+           "--", "expand.crossref = on",
+           bibfile,
+           "-o", tempfile,
+           "-q" # suppress warnings
+         ])
+        bibtool.wait()
 
-  # Run pandoc
-  pandoc = Popen(["pandoc",
-                  "--wrap", "none",
-                  "--to", {"html": "html",
-                           "markdown": "markdown-citations",
-                           "markdown-pure": "markdown_strict-raw_html-citations-native_divs-native_spans-markdown_in_html_blocks",
-                           "text": "plain"}[output_type],
-                  "--csl", style_file,
-                  "--bibliography", tempfile],
-                 stdout=PIPE, stdin=PIPE, stderr=PIPE)
-  pandoc_output = pandoc.communicate(source.encode())[0]
+    # Minimal Markdown input for pandoc.
+    # Since version 0.4, pandoc-citeproc supports a wildcard nocite.
+    source = "---\nnocite: '@*'\n...\n"
 
-  return pandoc_output
+    # Run pandoc
+    pandoc = Popen(["pandoc",
+                    "--wrap", "none",
+                    "--to", {"html": "html",
+                             "markdown": "markdown-citations",
+                             "markdown-pure": "markdown_strict-raw_html-citations-native_divs-native_spans-markdown_in_html_blocks",
+                             "text": "plain"}[output_type],
+                    "--csl", style_file,
+                    "--bibliography", tempfile],
+                   stdout=PIPE, stdin=PIPE, stderr=PIPE)
+    pandoc_output = pandoc.communicate(source.encode())[0]
+
+    return pandoc_output
 
 def main():
 
-  bibfile = "demo.bib"
-  style_file = "harvard1.csl"
-  config = configparser.ConfigParser()
-  config.read(CONFIG_PATH)
-  config_default = config["DEFAULT"]
-  if config_default.get("BibFile"):
-    bibfile = os.path.expanduser(config_default.get("BibFile"))
-  if config_default.get("StyleFile"):
-    style_file = os.path.expanduser(config_default.get("StyleFile"))
+    bibfile = "demo.bib"
+    style_file = "harvard1.csl"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_PATH)
+    config_default = config["DEFAULT"]
+    if config_default.get("BibFile"):
+        bibfile = os.path.expanduser(config_default.get("BibFile"))
+    if config_default.get("StyleFile"):
+        style_file = os.path.expanduser(config_default.get("StyleFile"))
 
-  parser = argparse.ArgumentParser(description = 
-      "Write formatted BibTeX entries to files, clipboard, or terminal.",
-      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description =
+        "Write formatted BibTeX entries to files, clipboard, or terminal.",
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 
-  parser.add_argument("bibtex_key", metavar="<bibtex-key>",
-                      type=str, nargs="+",
-                      help="keys of bibtex entries to format")
-  parser.add_argument("-b", "--bib-file", metavar = "<filename>",
-                      dest="bib_file", default = bibfile,
-                      help = "read entries from specified .bib file",
-                      type=str),
-  parser.add_argument("-s", "--style-file", metavar = "<filename>",
-                      dest="style_file", default = style_file,
-                      help = "format according to specified CSL file",
-                      type=str),
-  parser.add_argument("-t", "--output-type", dest="output_type",
-                      type=str,
-                      help = "type of output to produce",
-                      choices=["text", "html", "markdown", "markdown-pure"],
-                      default="html")
-  parser.add_argument("-o", "--output-file", metavar = "<filename>",
-                      dest="output_file",
-                      help = "write entries to specified file",
-                      type=str),
-  parser.add_argument("-c", "--clipboard", action="store_true",
-                      help = "copy entries to clipboard"),
-  parser.add_argument("-q", "--quiet", action="store_true",
-                      help = "don't write entries to standard output"),
+    parser.add_argument("bibtex_key", metavar="<bibtex-key>",
+                        type=str, nargs="+",
+                        help="keys of bibtex entries to format")
+    parser.add_argument("-b", "--bib-file", metavar = "<filename>",
+                        dest="bib_file", default = bibfile,
+                        help = "read entries from specified .bib file",
+                        type=str),
+    parser.add_argument("-s", "--style-file", metavar = "<filename>",
+                        dest="style_file", default = style_file,
+                        help = "format according to specified CSL file",
+                        type=str),
+    parser.add_argument("-t", "--output-type", dest="output_type",
+                        type=str,
+                        help = "type of output to produce",
+                        choices=["text", "html", "markdown", "markdown-pure"],
+                        default="html")
+    parser.add_argument("-o", "--output-file", metavar = "<filename>",
+                        dest="output_file",
+                        help = "write entries to specified file",
+                        type=str),
+    parser.add_argument("-c", "--clipboard", action="store_true",
+                        help = "copy entries to clipboard"),
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help = "don't write entries to standard output"),
 
-  args = parser.parse_args()
+    args = parser.parse_args()
 
-  if not os.path.isfile(args.bib_file):
-      print("Bibliography file %s does not exist. Exiting." %
-            args.bib_file, file = sys.stderr)
-      sys.exit(1)
-      
-  if not os.path.isfile(args.style_file):
-      print("Style file %s does not exist. Exiting." %
-            args.style_file, file = sys.stderr)
-      sys.exit(1)
+    if not os.path.isfile(args.bib_file):
+        print("Bibliography file %s does not exist. Exiting." %
+              args.bib_file, file = sys.stderr)
+        sys.exit(1)
 
-  with TemporaryDirectory() as tempdir:
-    pandoc_output = extract_and_format(args.bib_file, args.style_file,
-                                       args.bibtex_key,
-                                       tempdir, args.output_type)
+    if not os.path.isfile(args.style_file):
+        print("Style file %s does not exist. Exiting." %
+              args.style_file, file = sys.stderr)
+        sys.exit(1)
 
-  if args.output_type == "html":
-    # Pandoc adds some divs around the citations. We use BeautifulSoup to
-    # extract the <p> elements, which contain the bare citations.
-    soup = BeautifulSoup(pandoc_output.decode("utf-8"))
+    with TemporaryDirectory() as tempdir:
+        pandoc_output = extract_and_format(args.bib_file, args.style_file,
+                                           args.bibtex_key,
+                                           tempdir, args.output_type)
 
-    pars = list(map(str, soup.findAll("p")))
+    if args.output_type == "html":
+        # Pandoc adds some divs around the citations. We use BeautifulSoup to
+        # extract the <p> elements, which contain the bare citations.
+        soup = BeautifulSoup(pandoc_output.decode("utf-8"))
 
-    if len(pars) == 0:
-      print("No matching items found in bibtex file.")
-      return
+        pars = list(map(str, soup.findAll("p")))
 
-    parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
+        if len(pars) == 0:
+            print("No matching items found in bibtex file.")
+            return
 
-  else: # output type is not HTML, so it must be plain text or markdown
-    if pandoc_output == "":
-      print("No valid items to copy to the clipboard.")
-      return
-    parstring = pandoc_output.decode()
+        parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
 
-  target_map = {"text": "text/plain;charset=utf-8",
-                "markdown": "text/plain;charset=utf-8",
-                "markdown-pure": "text/plain;charset=utf-8",
-                "html": "text/html"}
+    else: # output type is not HTML, so it must be plain text or markdown
+        if pandoc_output == "":
+            print("No valid items to copy to the clipboard.")
+            return
+        parstring = pandoc_output.decode()
 
-  if not args.quiet:
-    print(parstring)
+    target_map = {"text": "text/plain;charset=utf-8",
+                  "markdown": "text/plain;charset=utf-8",
+                  "markdown-pure": "text/plain;charset=utf-8",
+                  "html": "text/html"}
 
-  if args.output_file:
-    with open(args.output_file, "w") as fh:
-      fh.write(parstring)
+    if not args.quiet:
+        print(parstring)
 
-  if args.clipboard:
-    # We use xclip to place the HTML fragment on the X clipboard. Note
-    # that there is no X clipboard buffer! xclip must remain running to
-    # handle the interclient communication when the contents are pasted.
+    if args.output_file:
+        with open(args.output_file, "w") as fh:
+            fh.write(parstring)
 
-    # The "-loops" argument tells how many transfers to carry out before
-    # exiting. "-loops 0" will loop infinitely.
-    xclip = Popen(["xclip",
-                   "-selection", "clipboard",
-                   "-loops", "0",
-                   "-verbose",
-                   "-target", target_map[args.output_type]],
-                  stdin=PIPE)
-    xclip.communicate(parstring.encode("utf-8"))
+    if args.clipboard:
+        # We use xclip to place the HTML fragment on the X clipboard. Note
+        # that there is no X clipboard buffer! xclip must remain running to
+        # handle the interclient communication when the contents are pasted.
+
+        # The "-loops" argument tells how many transfers to carry out before
+        # exiting. "-loops 0" will loop infinitely.
+        xclip = Popen(["xclip",
+                       "-selection", "clipboard",
+                       "-loops", "0",
+                       "-verbose",
+                       "-target", target_map[args.output_type]],
+                      stdin=PIPE)
+        xclip.communicate(parstring.encode("utf-8"))
 
 if __name__=="__main__":
-  main()
+    main()

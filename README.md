@@ -5,7 +5,7 @@ A utility to turn individual BibTeX entries into formatted plain text,
 markdown, or HTML. Formatting is controlled by a CSL file. Output can be
 written to the standard output, a file, or the X clipboard.
 
-Copyright Pontus Lurcock, 2016. Released under the MIT licence.
+Copyright Pontus Lurcock, 2016-2017. Released under the MIT licence.
 
 Introduction
 ------------
