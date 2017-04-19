@@ -75,7 +75,8 @@ def extract_and_format(bibfile, style_file, keys, tempdir, output_type):
                     "--to", {"html": "html",
                              "markdown": "markdown-citations",
                              "markdown-pure": "markdown_strict-raw_html-citations-native_divs-native_spans-markdown_in_html_blocks",
-                             "text": "plain"}[output_type],
+                             "text": "plain",
+                             "latex": "latex"}[output_type],
                     "--csl", style_file,
                     "--bibliography", tempfile],
                    stdout=PIPE, stdin=PIPE, stderr=PIPE)
@@ -113,7 +114,7 @@ def main():
     parser.add_argument("-t", "--output-type", dest="output_type",
                         type=str,
                         help = "type of output to produce",
-                        choices=["text", "html", "markdown", "markdown-pure"],
+                        choices=["text", "html", "markdown", "markdown-pure", "latex"],
                         default="html")
     parser.add_argument("-o", "--output-file", metavar = "<filename>",
                         dest="output_file",

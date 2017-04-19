@@ -56,10 +56,11 @@ to read entries.
 entries.
 
 `-t <type>`, `--output-type <type>` Set output type for formatted
-entries. Allowed values are `text`, `html`, `markdown`, and `markdown-pure`.
-`markdown-pure` produces markdown without any intermixed HTML fragments,
-whereas `markdown` will wrap output in HTML `div`s, and use HTML formatting
-for things that markdown can't do (e.g. small capitals).
+entries. Allowed values are `text`, `html`, `markdown`, `latex`, and
+`markdown-pure`. `markdown-pure` produces markdown without any
+intermixed HTML fragments, whereas `markdown` will wrap output in HTML
+`div`s, and use HTML formatting for things that markdown can't do (e.g.
+small capitals).
 
 `-o <filename>`, `--output-file <filename>` Write formatted entries to
 the specified file.
