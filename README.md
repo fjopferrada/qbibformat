@@ -2,8 +2,9 @@ qbibformat
 ==========
 
 A utility to turn individual BibTeX entries into formatted plain text,
-markdown, or HTML. Formatting is controlled by a CSL file. Output can be
-written to the standard output, a file, or the X clipboard.
+markdown, LaTeX, RST, or HTML. Formatting is controlled by a CSL file.
+Output can be written to the standard output, a file, or the X
+clipboard.
 
 Copyright Pontus Lurcock, 2016-2017. Released under the MIT licence.
 
@@ -56,8 +57,8 @@ to read entries.
 entries.
 
 `-t <type>`, `--output-type <type>` Set output type for formatted
-entries. Allowed values are `text`, `html`, `markdown`, `latex`, and
-`markdown-pure`. `markdown-pure` produces markdown without any
+entries. Allowed values are `text`, `html`, `markdown`, `latex`, `rst`,
+and `markdown-pure`. `markdown-pure` produces markdown without any
 intermixed HTML fragments, whereas `markdown` will wrap output in HTML
 `div`s, and use HTML formatting for things that markdown can't do (e.g.
 small capitals).

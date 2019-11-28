@@ -76,7 +76,8 @@ def extract_and_format(bibfile, style_file, keys, tempdir, output_type):
                              "markdown": "markdown-citations",
                              "markdown-pure": "markdown_strict-raw_html-citations-native_divs-native_spans-markdown_in_html_blocks",
                              "text": "plain",
-                             "latex": "latex"}[output_type],
+                             "latex": "latex",
+                             "rst": "rst"}[output_type],
                     "--csl", style_file,
                     "--bibliography", tempfile],
                    stdout=PIPE, stdin=PIPE, stderr=PIPE)
@@ -114,7 +115,7 @@ def main():
     parser.add_argument("-t", "--output-type", dest="output_type",
                         type=str,
                         help = "type of output to produce",
-                        choices=["text", "html", "markdown", "markdown-pure", "latex"],
+                        choices=["text", "html", "markdown", "markdown-pure", "latex", "rst"],
                         default="html")
     parser.add_argument("-o", "--output-file", metavar = "<filename>",
                         dest="output_file",
@@ -145,7 +146,7 @@ def main():
     if args.output_type == "html":
         # Pandoc adds some divs around the citations. We use BeautifulSoup to
         # extract the <p> elements, which contain the bare citations.
-        soup = BeautifulSoup(pandoc_output.decode("utf-8"))
+        soup = BeautifulSoup(pandoc_output.decode("utf-8"), "html.parser")
 
         pars = list(map(str, soup.findAll("p")))
 
@@ -155,7 +156,7 @@ def main():
 
         parstring = reduce(lambda a, b: a + "\n" + b, pars, "")
 
-    else: # output type is not HTML, so it must be plain text or markdown
+    else: # output type is not HTML, so no extra processing needed
         if pandoc_output == "":
             print("No valid items to copy to the clipboard.")
             return
@@ -164,6 +165,8 @@ def main():
     target_map = {"text": "text/plain;charset=utf-8",
                   "markdown": "text/plain;charset=utf-8",
                   "markdown-pure": "text/plain;charset=utf-8",
+                  "latex": "text/plain;charset=utf-8",
+                  "rst": "text/plain;charset=utf-8",
                   "html": "text/html"}
 
     if not args.quiet:
